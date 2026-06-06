@@ -1,0 +1,647 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta name="theme-color" content="#0b3c26">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<title>CARTA — La Piccola Argentina</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;500;600&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+<style>
+  :root {
+    --green-dark: #0b3c26;
+    --green-mid: #145c3a;
+    --green-light: #1e7a4e;
+    --gold: #c9a84c;
+    --gold-light: #e8c97a;
+    --cream: #faf7f2;
+    --cream-dark: #f0ebe0;
+    --text: #1a1a1a;
+    --text-muted: #6b6560;
+    --text-light: #9b9490;
+    --white: #ffffff;
+    --radius: 14px;
+    --radius-sm: 8px;
+    --shadow: 0 4px 24px rgba(0,0,0,0.08);
+    --shadow-lg: 0 8px 40px rgba(0,0,0,0.14);
+    --header-h: 60px;
+    --nav-h: 50px;
+    --safe-top: env(safe-area-inset-top, 0px);
+    --safe-bottom: env(safe-area-inset-bottom, 0px);
+  }
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  html { font-size: 16px; -webkit-text-size-adjust: 100%; }
+  body {
+    font-family: 'DM Sans', sans-serif;
+    background: var(--cream);
+    color: var(--text);
+    overflow-x: hidden;
+    min-height: 100vh;
+    padding-bottom: calc(80px + var(--safe-bottom));
+  }
+  img { display: block; max-width: 100%; }
+  button { border: none; background: none; cursor: pointer; font-family: inherit; -webkit-tap-highlight-color: transparent; }
+
+  /* LOADING */
+  #loading-screen {
+    position: fixed; inset: 0; z-index: 999;
+    background: var(--green-dark);
+    display: flex; flex-direction: column;
+    align-items: center; justify-content: center; gap: 20px;
+    transition: opacity 0.4s;
+  }
+  #loading-screen.hidden { opacity: 0; pointer-events: none; }
+  .loading-logo {
+    font-family: 'Playfair Display', serif;
+    font-size: 28px; color: var(--gold-light);
+    letter-spacing: 0.1em; text-align: center;
+  }
+  .loading-sub { font-size: 12px; color: rgba(255,255,255,0.5); }
+  .loading-spinner {
+    width: 36px; height: 36px;
+    border: 3px solid rgba(201,168,76,0.3);
+    border-top-color: var(--gold);
+    border-radius: 50%;
+    animation: spin 0.9s linear infinite;
+  }
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+  /* HEADER */
+  #header {
+    position: fixed; top: 0; left: 0; right: 0; z-index: 100;
+    background: var(--green-dark);
+    padding-top: var(--safe-top);
+    height: calc(var(--header-h) + var(--safe-top));
+  }
+  .header-inner {
+    display: flex; align-items: center; justify-content: space-between;
+    height: var(--header-h); padding: 0 16px;
+  }
+  .header-logo { font-family: 'Playfair Display', serif; font-size: 16px; font-weight: 600; color: var(--gold-light); letter-spacing: 0.12em; }
+  .header-actions { display: flex; gap: 6px; align-items: center; }
+  .hbtn {
+    display: flex; align-items: center; justify-content: center;
+    width: 44px; height: 44px; border-radius: 50%;
+    background: rgba(255,255,255,0.1);
+    transition: background 0.2s; color: white;
+    text-decoration: none; font-size: 19px; position: relative;
+  }
+  .hbtn:active { background: rgba(255,255,255,0.2); transform: scale(0.94); }
+  .allergen-badge {
+    position: absolute; top: 3px; right: 3px;
+    width: 10px; height: 10px;
+    background: var(--gold); border-radius: 50%;
+    border: 1.5px solid var(--green-dark);
+  }
+
+  /* NAV */
+  #nav {
+    position: fixed; left: 0; right: 0; z-index: 90;
+    top: calc(var(--header-h) + var(--safe-top));
+    height: var(--nav-h);
+    background: var(--green-dark);
+    border-bottom: 1px solid rgba(201,168,76,0.2);
+    overflow: hidden;
+  }
+  .nav-scroll { display: flex; align-items: stretch; overflow-x: auto; -webkit-overflow-scrolling: touch; scrollbar-width: none; gap: 0; padding: 0 8px; height: 100%; }
+  .nav-scroll::-webkit-scrollbar { display: none; }
+  .nav-tab {
+    flex-shrink: 0; padding: 0 16px; height: 100%;
+    display: inline-flex; align-items: center;
+    font-size: 13px; font-weight: 500;
+    color: rgba(255,255,255,0.55);
+    letter-spacing: 0.04em; text-transform: uppercase;
+    position: relative; transition: color 0.2s; white-space: nowrap;
+  }
+  .nav-tab.active { color: var(--gold-light); }
+  .nav-tab.active::after {
+    content: ''; position: absolute; bottom: 0; left: 16px; right: 16px;
+    height: 2px; background: var(--gold); border-radius: 2px 2px 0 0;
+  }
+
+  /* SUBNAV */
+  #subnav {
+    position: sticky;
+    top: calc(var(--header-h) + var(--nav-h) + var(--safe-top));
+    z-index: 80; background: var(--cream);
+    border-bottom: 1px solid var(--cream-dark);
+    padding: 10px 16px;
+  }
+  .subnav-scroll { display: flex; gap: 8px; overflow-x: auto; -webkit-overflow-scrolling: touch; scrollbar-width: none; }
+  .subnav-scroll::-webkit-scrollbar { display: none; }
+  .sub-tab {
+    flex-shrink: 0; padding: 6px 14px; border-radius: 20px;
+    font-size: 12px; font-weight: 500; color: var(--text-muted);
+    background: var(--cream-dark); transition: all 0.18s; white-space: nowrap; min-height: 32px;
+  }
+  .sub-tab.active { background: var(--green-dark); color: var(--gold-light); }
+
+  /* CONTENT */
+  #content { padding-top: calc(var(--header-h) + var(--nav-h) + var(--safe-top) + 10px); }
+  .section-header { padding: 24px 16px 12px; display: flex; align-items: baseline; gap: 10px; }
+  .section-title { font-family: 'Playfair Display', serif; font-size: 26px; font-weight: 500; color: var(--green-dark); }
+  .section-count { font-size: 12px; color: var(--text-light); font-weight: 400; }
+  .dishes-list { padding: 0 16px; display: flex; flex-direction: column; gap: 12px; }
+
+  /* DISH CARD */
+  .dish-card {
+    background: var(--white); border-radius: var(--radius);
+    display: flex; align-items: stretch; overflow: hidden;
+    box-shadow: 0 2px 12px rgba(0,0,0,0.05);
+    transition: transform 0.15s, box-shadow 0.15s;
+    cursor: pointer; -webkit-tap-highlight-color: transparent;
+  }
+  .dish-card:active { transform: scale(0.98); }
+  .dish-info {
+    flex: 1; padding: 14px 12px 14px 14px;
+    display: flex; flex-direction: column; justify-content: space-between; min-width: 0;
+  }
+  .dish-name { font-family: 'Playfair Display', serif; font-size: 15px; font-weight: 500; color: var(--text); line-height: 1.3; margin-bottom: 5px; }
+  .dish-desc { font-size: 12px; color: var(--text-muted); line-height: 1.5; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; margin-bottom: 8px; }
+  .dish-footer { display: flex; align-items: center; justify-content: space-between; }
+  .dish-price { font-size: 16px; font-weight: 500; color: var(--green-dark); }
+  .dish-allergens { display: flex; gap: 3px; flex-wrap: wrap; }
+  .alg-icon { width: 20px; height: 20px; border-radius: 4px; background: var(--cream-dark); display: flex; align-items: center; justify-content: center; font-size: 10px; }
+  .dish-img-wrap { width: 96px; flex-shrink: 0; }
+  .dish-img { width: 100%; height: 100%; object-fit: cover; aspect-ratio: 1/1; }
+  .dish-img-placeholder { width: 100%; height: 100%; background: var(--cream-dark); display: flex; align-items: center; justify-content: center; font-size: 28px; }
+
+  /* FILTER */
+  #filter-overlay {
+    position: fixed; inset: 0; z-index: 200;
+    background: rgba(11,60,38,0.55); backdrop-filter: blur(4px);
+    opacity: 0; pointer-events: none; transition: opacity 0.25s;
+  }
+  #filter-overlay.open { opacity: 1; pointer-events: all; }
+  #filter-panel {
+    position: absolute; bottom: 0; left: 0; right: 0;
+    background: var(--white); border-radius: 24px 24px 0 0;
+    padding: 0 0 calc(24px + var(--safe-bottom));
+    max-height: 88vh; overflow-y: auto;
+    transform: translateY(100%); transition: transform 0.3s cubic-bezier(0.4,0,0.2,1);
+  }
+  #filter-overlay.open #filter-panel { transform: translateY(0); }
+  .filter-handle { width: 36px; height: 4px; background: var(--cream-dark); border-radius: 2px; margin: 12px auto 0; }
+  .filter-header { display: flex; align-items: center; justify-content: space-between; padding: 16px 20px 8px; }
+  .filter-title { font-family: 'Playfair Display', serif; font-size: 20px; font-weight: 500; }
+  .filter-close { width: 44px; height: 44px; border-radius: 50%; background: var(--cream-dark); display: flex; align-items: center; justify-content: center; font-size: 18px; color: var(--text); }
+  .filter-desc { padding: 0 20px 16px; font-size: 13px; color: var(--text-muted); }
+  .filter-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; padding: 0 20px 16px; }
+  .filter-item { display: flex; align-items: center; gap: 10px; padding: 12px; border-radius: var(--radius-sm); background: var(--cream); cursor: pointer; transition: background 0.15s; }
+  .filter-item.selected { background: #e8f5ee; }
+  .filter-item.selected .fcheck { background: var(--green-dark); border-color: var(--green-dark); color: white; }
+  .fcheck { width: 22px; height: 22px; border-radius: 5px; border: 1.5px solid var(--cream-dark); background: white; display: flex; align-items: center; justify-content: center; font-size: 12px; flex-shrink: 0; transition: all 0.15s; }
+  .filter-label { font-size: 12px; font-weight: 500; color: var(--text); }
+  .filter-icon { font-size: 16px; }
+  .filter-footer { padding: 12px 20px 0; display: flex; gap: 10px; }
+  .btn-clear { flex: 1; height: 48px; border: 1.5px solid var(--cream-dark); border-radius: var(--radius-sm); font-size: 14px; font-weight: 500; color: var(--text-muted); background: white; }
+  .btn-apply { flex: 2; height: 48px; background: var(--green-dark); border-radius: var(--radius-sm); font-size: 14px; font-weight: 500; color: white; }
+  .filter-chips { display: flex; gap: 6px; flex-wrap: wrap; padding: 8px 16px 4px; }
+  .filter-chip { display: flex; align-items: center; gap: 5px; padding: 4px 10px 4px 8px; background: var(--green-dark); color: white; border-radius: 20px; font-size: 11px; font-weight: 500; }
+  .chip-x { font-size: 13px; opacity: 0.7; cursor: pointer; }
+
+  /* MODAL */
+  #modal-overlay { position: fixed; inset: 0; z-index: 300; background: rgba(0,0,0,0.6); opacity: 0; pointer-events: none; transition: opacity 0.25s; overflow-y: auto; }
+  #modal-overlay.open { opacity: 1; pointer-events: all; }
+  #modal { background: var(--white); border-radius: 24px 24px 0 0; position: absolute; bottom: 0; left: 0; right: 0; max-height: 92vh; overflow-y: auto; transform: translateY(100%); transition: transform 0.3s cubic-bezier(0.4,0,0.2,1); padding-bottom: calc(24px + var(--safe-bottom)); }
+  #modal-overlay.open #modal { transform: translateY(0); }
+  .modal-img { width: 100%; aspect-ratio: 16/9; object-fit: cover; }
+  .modal-img-placeholder { width: 100%; aspect-ratio: 16/9; background: var(--cream-dark); display: flex; align-items: center; justify-content: center; font-size: 60px; }
+  .modal-close-btn { position: absolute; top: 16px; right: 16px; width: 44px; height: 44px; border-radius: 50%; background: rgba(0,0,0,0.35); color: white; font-size: 20px; display: flex; align-items: center; justify-content: center; }
+  .modal-body { padding: 20px 20px 0; }
+  .modal-category { font-size: 11px; font-weight: 500; color: var(--green-light); letter-spacing: 0.08em; text-transform: uppercase; margin-bottom: 6px; }
+  .modal-name { font-family: 'Playfair Display', serif; font-size: 26px; font-weight: 500; line-height: 1.2; margin-bottom: 10px; }
+  .modal-price { font-size: 24px; font-weight: 500; color: var(--green-dark); margin-bottom: 16px; }
+  .modal-desc { font-size: 14px; color: var(--text-muted); line-height: 1.7; margin-bottom: 20px; }
+  .modal-alg-title { font-size: 12px; font-weight: 500; color: var(--text-light); text-transform: uppercase; letter-spacing: 0.06em; margin-bottom: 10px; }
+  .modal-alg-list { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 20px; }
+  .modal-alg-item { display: flex; align-items: center; gap: 6px; padding: 6px 10px; background: var(--cream); border-radius: 8px; font-size: 12px; color: var(--text); }
+  .no-alg { font-size: 13px; color: var(--text-muted); font-style: italic; }
+
+  /* QR */
+  #qr-overlay { position: fixed; inset: 0; z-index: 400; background: rgba(11,60,38,0.92); opacity: 0; pointer-events: none; transition: opacity 0.25s; display: flex; align-items: center; justify-content: center; flex-direction: column; gap: 20px; padding: 24px; }
+  #qr-overlay.open { opacity: 1; pointer-events: all; }
+  #qr-box { background: white; padding: 20px; border-radius: 20px; text-align: center; }
+  .qr-url { font-size: 10px; color: var(--text-muted); margin-top: 10px; word-break: break-all; max-width: 220px; }
+  .qr-title { font-family: 'Playfair Display', serif; font-size: 18px; color: white; }
+  .qr-sub { font-size: 13px; color: rgba(255,255,255,0.6); text-align: center; }
+  .qr-actions { display: flex; gap: 10px; }
+  .qr-btn { padding: 12px 24px; border-radius: 10px; font-size: 14px; font-weight: 500; }
+  .qr-download { background: var(--gold); color: var(--green-dark); }
+  .qr-close-btn { background: rgba(255,255,255,0.15); color: white; }
+
+  /* WA */
+  #wa-fab { position: fixed; right: 16px; bottom: calc(20px + var(--safe-bottom)); z-index: 150; width: 52px; height: 52px; border-radius: 50%; background: #25D366; box-shadow: 0 4px 16px rgba(37,211,102,0.4); display: flex; align-items: center; justify-content: center; text-decoration: none; }
+  #ig-fab { position: fixed; left: 16px; bottom: calc(20px + var(--safe-bottom)); z-index: 150; width: 52px; height: 52px; border-radius: 50%; background: linear-gradient(45deg, #f09433 0%, #e6683c 25%, #dc2743 50%, #cc2366 75%, #bc1888 100%); box-shadow: 0 4px 16px rgba(188,24,136,0.4); display: flex; align-items: center; justify-content: center; text-decoration: none; }
+  #wa-fab svg { width: 26px; height: 26px; fill: white; }
+
+  /* EMPTY */
+  .empty-state { text-align: center; padding: 60px 24px; }
+  .empty-icon { font-size: 48px; margin-bottom: 12px; }
+  .empty-title { font-family: 'Playfair Display', serif; font-size: 18px; margin-bottom: 6px; }
+  .empty-sub { font-size: 13px; color: var(--text-muted); }
+
+  /* COUNTER BAR */
+  #counter-bar { position: fixed; top: calc(var(--header-h) + var(--nav-h) + var(--safe-top)); left: 0; right: 0; z-index: 85; background: #fff8e8; border-bottom: 1px solid #e8c97a; padding: 8px 16px; display: none; align-items: center; justify-content: space-between; font-size: 12px; color: #7a5c10; }
+  #counter-bar.visible { display: flex; }
+
+  /* ERROR */
+  #error-banner { display: none; background: #fff3cd; border: 1px solid #ffc107; color: #856404; padding: 12px 16px; margin: 16px; border-radius: 8px; font-size: 13px; text-align: center; }
+</style>
+</head>
+<body>
+
+<div id="loading-screen">
+  <div class="loading-logo">La Piccola Argentina</div>
+  <div class="loading-spinner"></div>
+  <div class="loading-sub">Cargando carta…</div>
+</div>
+
+<header id="header">
+  <div class="header-inner">
+    <div style="display:flex;flex-direction:column;line-height:1.1">
+      <span class="header-logo">La Piccola Argentina</span>
+      <span style="font-size:10px;color:rgba(201,168,76,0.7);letter-spacing:0.04em">Restobar · Plaza Colón 11</span>
+    </div>
+    <div class="header-actions">
+      <button class="hbtn" id="qr-btn" aria-label="Ver código QR">🔳</button>
+      <a href="https://g.page/r/REPLACE_GOOGLE_REVIEWS" target="_blank" rel="noopener" class="hbtn" aria-label="Google Reviews">⭐</a>
+      <button class="hbtn" id="allergen-btn" aria-label="Filtrar alérgenos" style="position:relative">
+        ⚠️
+        <span class="allergen-badge" id="allergen-badge" style="display:none"></span>
+      </button>
+    </div>
+  </div>
+</header>
+
+<nav id="nav"><div class="nav-scroll" id="nav-scroll"></div></nav>
+<div id="counter-bar"><div style="display:flex;align-items:center;gap:8px"><span>🔍</span><span id="counter-text"></span></div><div id="filter-chips-bar" class="filter-chips" style="padding:0"></div></div>
+<div id="subnav"><div class="subnav-scroll" id="subnav-scroll"></div></div>
+<div id="error-banner"></div>
+<main id="content"></main>
+
+<a id="wa-fab" href="https://wa.me/34600000000?text=Hola%2C%20tengo%20una%20pregunta%20sobre%20la%20carta" target="_blank" rel="noopener" aria-label="WhatsApp">
+  <svg viewBox="0 0 24 24"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/></svg>
+</a>
+
+<a id="ig-fab" href="https://www.instagram.com/" target="_blank" rel="noopener" aria-label="Instagram">
+  <svg viewBox="0 0 24 24" fill="white" width="26" height="26"><path d="M12 2.163c3.204 0 3.584.012 4.85.07 3.252.148 4.771 1.691 4.919 4.919.058 1.265.069 1.645.069 4.849 0 3.205-.012 3.584-.069 4.849-.149 3.225-1.664 4.771-4.919 4.919-1.266.058-1.644.07-4.85.07-3.204 0-3.584-.012-4.849-.07-3.26-.149-4.771-1.699-4.919-4.92-.058-1.265-.07-1.644-.07-4.849 0-3.204.013-3.583.07-4.849.149-3.227 1.664-4.771 4.919-4.919 1.266-.057 1.645-.069 4.849-.069zm0-2.163c-3.259 0-3.667.014-4.947.072-4.358.2-6.78 2.618-6.98 6.98-.059 1.281-.073 1.689-.073 4.948 0 3.259.014 3.668.072 4.948.2 4.358 2.618 6.78 6.98 6.98 1.281.058 1.689.072 4.948.072 3.259 0 3.668-.014 4.948-.072 4.354-.2 6.782-2.618 6.979-6.98.059-1.28.073-1.689.073-4.948 0-3.259-.014-3.667-.072-4.947-.196-4.354-2.617-6.78-6.979-6.98-1.281-.059-1.69-.073-4.949-.073zm0 5.838c-3.403 0-6.162 2.759-6.162 6.162s2.759 6.163 6.162 6.163 6.162-2.759 6.162-6.163c0-3.403-2.759-6.162-6.162-6.162zm0 10.162c-2.209 0-4-1.79-4-4 0-2.209 1.791-4 4-4s4 1.791 4 4c0 2.21-1.791 4-4 4zm6.406-11.845c-.796 0-1.441.645-1.441 1.44s.645 1.44 1.441 1.44c.795 0 1.439-.645 1.439-1.44s-.644-1.44-1.439-1.44z"/></svg>
+</a>
+
+<div id="filter-overlay">
+  <div id="filter-panel">
+    <div class="filter-handle"></div>
+    <div class="filter-header">
+      <h2 class="filter-title">Filtro Alérgenos</h2>
+      <button class="filter-close" id="filter-close-btn">✕</button>
+    </div>
+    <p class="filter-desc">Los platos con alérgenos seleccionados quedarán ocultos.</p>
+    <div class="filter-grid" id="filter-grid"></div>
+    <div class="filter-footer">
+      <button class="btn-clear" id="btn-clear-filters">Limpiar</button>
+      <button class="btn-apply" id="btn-apply-filters">Ver platos</button>
+    </div>
+  </div>
+</div>
+
+<div id="modal-overlay">
+  <div id="modal">
+    <div id="modal-img-container"></div>
+    <button class="modal-close-btn" id="modal-close">✕</button>
+    <div class="modal-body">
+      <div class="modal-category" id="modal-category"></div>
+      <h2 class="modal-name" id="modal-name"></h2>
+      <div class="modal-price" id="modal-price"></div>
+      <p class="modal-desc" id="modal-desc"></p>
+      <div class="modal-alg-title">Alérgenos</div>
+      <div class="modal-alg-list" id="modal-alg-list"></div>
+    </div>
+  </div>
+</div>
+
+<div id="qr-overlay">
+  <p class="qr-title">Escanea para abrir la carta</p>
+  <div id="qr-box"><div id="qr-canvas"></div><p class="qr-url" id="qr-url-text"></p></div>
+  <p class="qr-sub">Comparte este QR con tus clientes</p>
+  <div class="qr-actions">
+    <button class="qr-btn qr-download" id="qr-download-btn">⬇ Descargar QR</button>
+    <button class="qr-btn qr-close-btn" id="qr-close-btn">Cerrar</button>
+  </div>
+</div>
+
+<script>
+// ═══════════════════════════════════════════════════════
+// ⚙️ CONFIGURACIÓN — URL ORIGINAL
+// ═══════════════════════════════════════════════════════
+const SHEET_CSV_URL = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vQ9I5nkafng75YQR66paY1tv_Xy9BxVuPk3MLlTDkrpAb5nIKIc99E7AEj7sqAKlrRuvrTUOEv6lg9W/pub?gid=100977437&single=true&output=csv';
+// ═══════════════════════════════════════════════════════
+
+const ALLERGENS = [
+  {id:'gluten',     label:'Gluten',       icon:'🌾'},
+  {id:'crustaceans',label:'Crustáceos',   icon:'🦐'},
+  {id:'eggs',       label:'Huevos',       icon:'🥚'},
+  {id:'fish',       label:'Pescados',     icon:'🐟'},
+  {id:'peanuts',    label:'Cacahuetes',   icon:'🥜'},
+  {id:'soy',        label:'Soja',         icon:'🫘'},
+  {id:'milk',       label:'Lácteos',      icon:'🥛'},
+  {id:'nuts',       label:'Frutos secos', icon:'🌰'},
+  {id:'celery',     label:'Apio',         icon:'🌿'},
+  {id:'mustard',    label:'Mostaza',      icon:'🌻'},
+  {id:'sesame',     label:'Sésamo',       icon:'🫙'},
+  {id:'sulphites',  label:'Sulfitos',     icon:'🍷'},
+  {id:'lupin',      label:'Altramuces',   icon:'🌼'},
+  {id:'molluscs',   label:'Moluscos',     icon:'🐚'}
+];
+
+const CAT_ORDER  = ['entradas','carnes','pescado','arroces','postres','vinos'];
+const CAT_LABELS = {entradas:'Entrantes',carnes:'Carnes',pescado:'Pescados',arroces:'Arroces',postres:'Postres',vinos:'Vinos'};
+const CAT_EMOJIS = {entradas:'🥗',carnes:'🥩',pescado:'🐟',arroces:'🥘',postres:'🍮',vinos:'🍷'};
+
+// ── CSV PARSER
+function parseCSV(text) {
+  const cleaned = text.replace(/^\uFEFF/, '');
+  const lines = cleaned.trim().split(/\r?\n/);
+  if (lines.length < 2) return [];
+  const headers = parseCSVLine(lines[0]).map(h => h.trim().toLowerCase());
+  console.info('📋 Cabeceras detectadas:', headers);
+  return lines.slice(1).map(line => {
+    const vals = parseCSVLine(line);
+    const obj = {};
+    headers.forEach((h, i) => obj[h] = (vals[i] || '').trim());
+    return obj;
+  }).filter(r => r.nombre);
+}
+
+function parseCSVLine(line) {
+  const result = []; let cur = ''; let inQ = false;
+  for (let i = 0; i < line.length; i++) {
+    const ch = line[i];
+    if (ch === '"') { inQ = !inQ; }
+    else if (ch === ',' && !inQ) { result.push(cur); cur = ''; }
+    else { cur += ch; }
+  }
+  result.push(cur);
+  return result;
+}
+
+// ── CONSTRUIR CATEGORIAS desde CSV
+function buildCategories(rows) {
+  const map = {};
+  rows.forEach((row, i) => {
+    // MODIFICACIÓN: Si no existe la columna 'disponible', asumimos que es 'Sí'
+    if (row.disponible && row.disponible.toLowerCase() === 'no') return;
+    
+    const id = row.categoria_id;
+    if (!id) return;
+    
+    if (!map[id]) {
+      map[id] = {
+        id,
+        label: row.categoria_label || CAT_LABELS[id] || id,
+        emoji: row.categoria_emoji || CAT_EMOJIS[id] || '🍽️',
+        subs: [],
+        dishes: []
+      };
+    }
+    if (row.subcategoria && !map[id].subs.includes(row.subcategoria)) {
+      map[id].subs.push(row.subcategoria);
+    }
+    map[id].dishes.push({
+      id: i + 1,
+      name: row.nombre,
+      sub: row.subcategoria || '',
+      desc: row.descripcion || '',
+      price: row.precio || '0',
+      img: row.imagen_url || '',
+      allergens: row.alergenos ? row.alergenos.split(',').map(a => a.trim().toLowerCase()).filter(Boolean) : []
+    });
+  });
+  return CAT_ORDER.filter(id => map[id]).map(id => map[id])
+    .concat(Object.values(map).filter(c => !CAT_ORDER.includes(c.id)));
+}
+
+let CATEGORIES = [];
+const state = { activeCat: '', activeSub: null, activeFilters: new Set() };
+
+// ── CARGAR DATOS CON TRUCO ANTI-CACHÉ MEJORADO
+async function loadMenu() {
+  const loading = document.getElementById('loading-screen');
+  const banner  = document.getElementById('error-banner');
+
+  // TRUCO ANTI-CACHÉ DEFINITIVO: Añadir timestamp único a la URL de Google para que no recuerde datos viejos
+  const cacheBuster = '&t=' + new Date().getTime();
+  const finalUrl = SHEET_CSV_URL + cacheBuster;
+
+  const urlsToTry = [
+    { label: 'directo',    url: finalUrl },
+    { label: 'proxy1',     url: 'https://corsproxy.io/?' + encodeURIComponent(finalUrl) },
+    { label: 'proxy2',     url: 'https://api.allorigins.win/raw?url=' + encodeURIComponent(finalUrl) },
+    { label: 'proxy3',     url: 'https://api.codetabs.com/v1/proxy?quest=' + encodeURIComponent(finalUrl) }
+  ];
+
+  let loaded = false;
+
+  for (const entry of urlsToTry) {
+    try {
+      console.info('Intentando cargar menu ' + entry.label + '...');
+      const controller = new AbortController();
+      const timer = setTimeout(() => controller.abort(), 6000);
+      const res = await fetch(entry.url, { cache: 'no-store', signal: controller.signal });
+      clearTimeout(timer);
+      if (!res.ok) throw new Error('HTTP ' + res.status);
+      const text = await res.text();
+      if (text.trim().startsWith('<')) throw new Error('Respuesta HTML, no CSV');
+      const rows = parseCSV(text);
+      if (rows.length > 0) {
+        CATEGORIES = buildCategories(rows);
+        console.info('Menu cargado con éxito: ' + rows.length + ' platos');
+        loaded = true;
+        break;
+      }
+    } catch (e) {
+      console.error('Fallo ' + entry.label + ':', e.message);
+    }
+  }
+
+  if (!loaded) {
+    CATEGORIES = buildCategories(FALLBACK_DATA);
+    banner.textContent = 'Usando datos locales. Recuerda esperar 3 minutos tras actualizar Google Sheets.';
+    banner.style.display = 'block';
+  }
+
+  state.activeCat = CATEGORIES[0]?.id || '';
+  renderAll();
+  loading.classList.add('hidden');
+}
+
+function renderAll() { renderNav(); renderSubnav(); renderContent(); }
+
+function renderNav() {
+  document.getElementById('nav-scroll').innerHTML = CATEGORIES.map(cat =>
+    `<button class="nav-tab ${cat.id === state.activeCat ? 'active' : ''}" data-cat="${cat.id}">${cat.label}</button>`
+  ).join('');
+}
+
+function renderSubnav() {
+  const cat = CATEGORIES.find(c => c.id === state.activeCat);
+  if (!cat?.subs.length) { document.getElementById('subnav').style.display = 'none'; return; }
+  document.getElementById('subnav').style.display = '';
+  document.getElementById('subnav-scroll').innerHTML =
+    `<button class="sub-tab ${!state.activeSub ? 'active' : ''}" data-sub="">Todos</button>` +
+    cat.subs.map(s => `<button class="sub-tab ${state.activeSub === s ? 'active' : ''}" data-sub="${s}">${s}</button>`).join('');
+}
+
+function setCategory(id) {
+  state.activeCat = id; state.activeSub = null;
+  renderNav(); renderSubnav(); renderContent();
+  document.querySelector('.nav-tab.active')?.scrollIntoView({behavior:'smooth',block:'nearest',inline:'center'});
+  window.scrollTo({top:0});
+}
+
+function isDishVisible(d) {
+  return state.activeFilters.size === 0 || !d.allergens.some(a => state.activeFilters.has(a));
+}
+
+function renderContent() {
+  const cat = CATEGORIES.find(c => c.id === state.activeCat);
+  if (!cat) return;
+  const dishes = cat.dishes.filter(d => !state.activeSub || d.sub === state.activeSub);
+  const visible = dishes.filter(isDishVisible);
+
+  let html = `<div class="section-header">
+    <h1 class="section-title">${cat.emoji} ${cat.label}</h1>
+    <span class="section-count">${visible.length} plato${visible.length !== 1 ? 's' : ''}</span>
+  </div><div class="dishes-list">`;
+
+  if (!visible.length) {
+    html += `<div class="empty-state"><div class="empty-icon">🚫</div><div class="empty-title">Sin platos disponibles</div><div class="empty-sub">Todos los platos contienen tus alérgenos filtrados.</div></div>`;
+  } else {
+    visible.forEach(d => {
+      const algs = d.allergens.map(id => ALLERGENS.find(a => a.id === id)).filter(Boolean).slice(0, 5);
+      html += `<div class="dish-card" data-id="${d.id}" role="button" tabindex="0">
+        <div class="dish-info">
+          <div>
+            <div class="dish-name">${d.name}</div>
+            <div class="dish-desc">${d.desc}</div>
+          </div>
+          <div class="dish-footer">
+            <span class="dish-price">€${parseFloat(d.price).toFixed(2)}</span>
+            <div class="dish-allergens">${algs.map(a => `<span class="alg-icon" title="${a.label}">${a.icon}</span>`).join('')}</div>
+          </div>
+        </div>
+        <div class="dish-img-wrap">
+          ${d.img
+            ? `<img class="dish-img" src="${d.img}" alt="${d.name}" loading="lazy" onerror="this.style.display='none';this.nextElementSibling.style.display='flex'"><div class="dish-img-placeholder" style="display:none">${cat.emoji}</div>`
+            : `<div class="dish-img-placeholder">${cat.emoji}</div>`}
+        </div>
+      </div>`;
+    });
+  }
+  html += '</div>';
+  document.getElementById('content').innerHTML = html;
+  updateCounterBar();
+}
+
+function openModal(id) {
+  const d = CATEGORIES.flatMap(c => c.dishes).find(x => x.id === id);
+  if (!d) return;
+  const cat = CATEGORIES.find(c => c.dishes.includes(d));
+  document.getElementById('modal-category').textContent = (cat?.label || '') + (d.sub ? ' · ' + d.sub : '');
+  document.getElementById('modal-name').textContent = d.name;
+  document.getElementById('modal-price').textContent = '€' + parseFloat(d.price).toFixed(2);
+  document.getElementById('modal-desc').textContent = d.desc;
+  document.getElementById('modal-img-container').innerHTML = d.img
+    ? `<img class="modal-img" src="${d.img}" alt="${d.name}" onerror="this.style.display='none';this.nextElementSibling.style.display='flex'"><div class="modal-img-placeholder" style="display:none">${cat?.emoji||'🍽️'}</div>`
+    : `<div class="modal-img-placeholder">${cat?.emoji||'🍽️'}</div>`;
+  const algs = d.allergens.map(id => ALLERGENS.find(a => a.id === id)).filter(Boolean);
+  document.getElementById('modal-alg-list').innerHTML = algs.length
+    ? algs.map(a => `<div class="modal-alg-item"><span>${a.icon}</span><span>${a.label}</span></div>`).join('')
+    : '<span class="no-alg">Sin alérgenos declarados</span>';
+  document.getElementById('modal-overlay').classList.add('open');
+  document.body.style.overflow = 'hidden';
+}
+
+function closeModal() { document.getElementById('modal-overlay').classList.remove('open'); document.body.style.overflow = ''; }
+
+function renderFilterGrid() {
+  document.getElementById('filter-grid').innerHTML = ALLERGENS.map(a =>
+    `<div class="filter-item ${state.activeFilters.has(a.id)?'selected':''}" data-alg="${a.id}">
+      <div class="fcheck">${state.activeFilters.has(a.id)?'✓':''}</div>
+      <span class="filter-icon">${a.icon}</span>
+      <span class="filter-label">${a.label}</span>
+    </div>`
+  ).join('');
+}
+
+function openFilter() { renderFilterGrid(); document.getElementById('filter-overlay').classList.add('open'); document.body.style.overflow = 'hidden'; }
+function closeFilter() { document.getElementById('filter-overlay').classList.remove('open'); document.body.style.overflow = ''; }
+
+function updateCounterBar() {
+  const bar = document.getElementById('counter-bar');
+  if (!state.activeFilters.size) { bar.classList.remove('visible'); return; }
+  bar.classList.add('visible');
+  const cat = CATEGORIES.find(c => c.id === state.activeCat);
+  const total = cat?.dishes.length || 0;
+  const vis = cat?.dishes.filter(isDishVisible).length || 0;
+  document.getElementById('counter-text').textContent = `Mostrando ${vis} de ${total} platos`;
+  document.getElementById('filter-chips-bar').innerHTML = ALLERGENS.filter(a => state.activeFilters.has(a.id))
+    .map(a => `<div class="filter-chip">${a.icon} ${a.label} <span class="chip-x" data-remove="${a.id}">✕</span></div>`).join('');
+  document.getElementById('allergen-badge').style.display = state.activeFilters.size ? 'block' : 'none';
+}
+
+let qrDone = false;
+function openQR() {
+  const url = window.location.href.split('?')[0];
+  document.getElementById('qr-url-text').textContent = url;
+  if (!qrDone) {
+    document.getElementById('qr-canvas').innerHTML = '';
+    new QRCode(document.getElementById('qr-canvas'), { text: url, width: 200, height: 200, colorDark: '#0b3c26', colorLight: '#ffffff', correctLevel: QRCode.CorrectLevel.H });
+    qrDone = true;
+  }
+  document.getElementById('qr-overlay').classList.add('open');
+  document.body.style.overflow = 'hidden';
+}
+function closeQR() { document.getElementById('qr-overlay').classList.remove('open'); document.body.style.overflow = ''; }
+function downloadQR() {
+  const canvas = document.querySelector('#qr-canvas canvas');
+  if (!canvas) return;
+  const a = document.createElement('a'); a.download = 'menu-qr.png'; a.href = canvas.toDataURL('image/png'); a.click();
+}
+
+// ── EVENTOS
+document.getElementById('nav-scroll').addEventListener('click', e => { const t = e.target.closest('.nav-tab'); if (t) setCategory(t.dataset.cat); });
+document.getElementById('subnav-scroll').addEventListener('click', e => { const t = e.target.closest('.sub-tab'); if (t) { state.activeSub = t.dataset.sub || null; renderSubnav(); renderContent(); } });
+document.getElementById('content').addEventListener('click', e => { const c = e.target.closest('.dish-card'); if (c) openModal(Number(c.dataset.id)); });
+document.getElementById('allergen-btn').addEventListener('click', openFilter);
+document.getElementById('filter-close-btn').addEventListener('click', closeFilter);
+document.getElementById('filter-overlay').addEventListener('click', e => { if (e.target.id === 'filter-overlay') closeFilter(); });
+document.getElementById('filter-grid').addEventListener('click', e => {
+  const item = e.target.closest('.filter-item');
+  if (!item) return;
+  const alg = item.dataset.alg;
+  state.activeFilters.has(alg) ? state.activeFilters.delete(alg) : state.activeFilters.add(alg);
+  renderFilterGrid();
+});
+document.getElementById('btn-clear-filters').addEventListener('click', () => { state.activeFilters.clear(); renderFilterGrid(); closeFilter(); renderContent(); });
+document.getElementById('btn-apply-filters').addEventListener('click', () => { closeFilter(); renderContent(); });
+document.getElementById('filter-chips-bar').addEventListener('click', e => { const r = e.target.closest('[data-remove]'); if (r) { state.activeFilters.delete(r.dataset.remove); renderContent(); } });
+document.getElementById('modal-close').addEventListener('click', closeModal);
+document.getElementById('modal-overlay').addEventListener('click', e => { if (e.target.id === 'modal-overlay') closeModal(); });
+document.getElementById('qr-btn').addEventListener('click', openQR);
+document.getElementById('qr-close-btn').addEventListener('click', closeQR);
+document.getElementById('qr-download-btn').addEventListener('click', downloadQR);
+document.getElementById('qr-overlay').addEventListener('click', e => { if (e.target.id === 'qr-overlay') closeQR(); });
+document.body.addEventListener('keydown', e => { if (e.key === 'Escape') { closeModal(); closeFilter(); closeQR(); } });
+
+// ── FALLBACK DATA (Solo se usa si internet falla por completo)
+const FALLBACK_DATA = [
+  {categoria_id:'entradas',nombre:'Cargando desde Excel...',descripcion:'Si la página no carga, revisa tu conexión.',precio:'0.00'}
+];
+
+loadMenu();
+</script>
+</body>
+</html>
